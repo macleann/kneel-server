@@ -1,6 +1,6 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from views import get_all_metals, get_single_metal, create_metal, delete_metal, get_all_styles, get_single_style, create_style, delete_style, get_all_sizes, get_single_size, create_size, delete_size, get_all_orders, get_single_order, create_order, delete_order
+from views import get_all_metals, get_single_metal, create_metal, delete_metal, update_metal, get_all_styles, get_single_style, create_style, delete_style, update_style, get_all_sizes, get_single_size, create_size, delete_size, update_size, get_all_orders, get_single_order, create_order, delete_order, update_order
 
 
 class HandleRequests(BaseHTTPRequestHandler):
@@ -65,7 +65,23 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         """Handles PUT requests to the server """
-        self.do_POST()
+        self._set_headers(204)
+        content_len = int(self.headers.get('content-length', 0))
+        post_body = self.rfile.read(content_len)
+        post_body = json.loads(post_body)
+        
+        (resource, id) = self.parse_url(self.path)
+        
+        if resource == "metals":
+            update_metal(id, post_body)
+        elif resource == "styles":
+            update_style(id, post_body)
+        elif resource == "sizes":
+            update_size(id, post_body)
+        elif resource == "orders":
+            update_order(id, post_body)
+            
+        self.wfile.write("".encode())
         
     def do_DELETE(self):
         self._set_headers(204)

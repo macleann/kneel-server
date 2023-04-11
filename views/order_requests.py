@@ -50,6 +50,12 @@ def create_order(order):
     ORDERS.append(order)
     return order
 
+def update_order(id, new_order):
+    for index, order in enumerate(ORDERS):
+        if order["id"] == id:
+            ORDERS[index] = new_order
+            break
+
 def delete_order(id):
     order_index = -1
     

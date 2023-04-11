@@ -24,6 +24,12 @@ def create_metal(metal):
     METALS.append(metal)
     return metal
 
+def update_metal(id, new_metal):
+    for index, metal in enumerate(METALS):
+        if metal["id"] == id:
+            METALS[index] = new_metal
+            break
+
 def delete_metal(id):
     metal_index = -1
     

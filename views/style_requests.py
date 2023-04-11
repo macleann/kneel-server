@@ -22,6 +22,12 @@ def create_style(style):
     STYLES.append(style)
     return style
 
+def update_style(id, new_style):
+    for index, style in enumerate(STYLES):
+        if style["id"] == id:
+            STYLES[index] = new_style
+            break
+
 def delete_style(id):
     style_index = -1
     

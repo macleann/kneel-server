@@ -24,6 +24,12 @@ def create_size(size):
     SIZES.append(size)
     return size
 
+def update_size(id, new_size):
+    for index, size in enumerate(SIZES):
+        if size["id"] == id:
+            SIZES[index] = new_size
+            break
+
 def delete_size(id):
     size_index = -1
     
