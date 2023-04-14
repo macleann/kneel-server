@@ -1,7 +1,7 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from views import get_all_metals, get_single_metal, create_metal, delete_metal, update_metal, get_all_styles, get_single_style, create_style, delete_style, update_style, get_all_sizes, get_single_size, create_size, delete_size, update_size, get_all_orders, get_single_order, create_order, delete_order, update_order
-
+from urllib.parse import urlparse
+from repository import all, retrieve, create, update
 
 class HandleRequests(BaseHTTPRequestHandler):
     """Controls the functionality of any GET, PUT, POST, DELETE requests to the server
@@ -9,63 +9,45 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handles GET requests to the server """
-        self._set_headers(200)
         response = {}
-        
-        (resource, id) = self.parse_url(self.path)
-
-        if resource == "metals":
-            if id is not None:
-                response = get_single_metal(id)
-            else:
-                response = get_all_metals()
-                
-        elif resource == "styles":
-            if id is not None:
-                response = get_single_style(id)
-            else:
-                response = get_all_styles()
-        
-        elif resource == "sizes":
-            if id is not None:
-                response = get_single_size(id)
-            else:
-                response = get_all_sizes()
-                
-        elif resource == "orders":
-            if id is not None:
-                response = get_single_order(id)
-            else:
-                response = get_all_orders()
-
-        else:
-            response = []
-
+        (resource, id, query_params) = self.parse_url(self.path)
+        response = self.get_all_or_single(resource, id, query_params)
         self.wfile.write(json.dumps(response).encode())
+
+    def get_all_or_single(self, resource, id, query_params):
+        if id is not None:
+            response = retrieve(resource, id, query_params)
+            
+            if response is not None:
+                self._set_headers(200)
+            else:
+                self._set_headers(404)
+                response = ''
+        else:
+            self._set_headers(200)
+            response = all(resource)
+
+        return response
 
     def do_POST(self):
         """Handles POST requests to the server """
-        self._set_headers(201)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
         (resource, id) = self.parse_url(self.path)
         new_resource = None
         
-        if resource == "metals":
-            new_resource = create_metal(post_body)
-        elif resource == "styles":
-            new_resource = create_style(post_body)
-        elif resource == "sizes":
-            new_resource = create_size(post_body)
-        elif resource == "orders":
-            new_resource = create_order(post_body)
+        if resource == "orders":
+            self._set_headers(201)
+            new_resource = create(resource, post_body)
+        else:
+            self._set_headers(400)
+            new_resource = f"message: clients are unable to create new {resource}"
                 
         self.wfile.write(json.dumps(new_resource).encode())
 
     def do_PUT(self):
         """Handles PUT requests to the server """
-        self._set_headers(204)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
@@ -73,29 +55,17 @@ class HandleRequests(BaseHTTPRequestHandler):
         (resource, id) = self.parse_url(self.path)
         
         if resource == "metals":
-            update_metal(id, post_body)
-        elif resource == "styles":
-            update_style(id, post_body)
-        elif resource == "sizes":
-            update_size(id, post_body)
-        elif resource == "orders":
-            update_order(id, post_body)
-            
+            self._set_headers(204)
+            update(resource, id, post_body)
+        else:
+            self._set_headers(405)
+            response = f"message: clients are unable to update {resource}"
+            return self.wfile.write(json.dumps(response).encode())
+
         self.wfile.write("".encode())
         
     def do_DELETE(self):
-        self._set_headers(204)
-        (resource, id) = self.parse_url(self.path)
-        
-        if resource == "metals":
-            delete_metal(id)
-        elif resource == "styles":
-            delete_style(id)
-        elif resource == "sizes":
-            delete_size(id)
-        elif resource == "orders":
-            delete_order(id)
-            
+        self._set_headers(405)
         self.wfile.write("".encode())
 
     def _set_headers(self, status):
@@ -115,23 +85,26 @@ class HandleRequests(BaseHTTPRequestHandler):
         """
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT')
         self.send_header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept')
         self.end_headers()
 
+        # Replace existing function with this
     def parse_url(self, path):
-        path_params = path.split("/")
-        resource = path_params[1]
+        url_components = urlparse(path)
+        path_params = url_components.path.strip("/").split("/")
+        query_params = url_components.query.split("&")
+        resource = path_params[0]
         id = None
 
         try:
-            id = int(path_params[2])
+            id = int(path_params[1])
         except IndexError:
             pass
         except ValueError:
             pass
 
-        return (resource, id)
+        return (resource, id, query_params)
 
 # point of this application.
 def main():
