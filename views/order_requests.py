@@ -1,67 +1,115 @@
-ORDERS = [
-    {
-        "id": 1,
-        "metalId": 1,
-        "sizeId": 2,
-        "styleId": 3,
-        "timestamp": 1614659931693
-    },
-    {
-        "id": 2,
-        "metalId": 2,
-        "sizeId": 3,
-        "styleId": 1,
-        "timestamp": 1616333988188
-    },
-    {
-        "id": 3,
-        "metalId": 3,
-        "sizeId": 1,
-        "styleId": 2,
-        "timestamp": 1616334884289
-    },
-    {
-        "id": 4,
-        "metalId": 1,
-        "sizeId": 3,
-        "styleId": 2,
-        "timestamp": 1616334980694
-    }
-]
+import sqlite3
+import json
+from models import Order, Metal, Style, Size
 
 def get_all_orders():
-    return ORDERS
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            o.id,
+            o.timestamp,
+            o.metal_id,
+            m.metal,
+            m.price,
+            o.style_id,
+            st.style_type,
+            st.price,
+            o.size_id,
+            s.carets,
+            s.price
+        FROM Orders o
+        JOIN Metals m ON m.id = o.metal_id
+        JOIN Styles st ON st.id = o.style_id
+        JOIN Sizes s ON s.id = o.size_id
+        """)
+
+        orders = []
+
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            order = Order(row['id'], row['timestamp'], row['metal_id'], 
+                          row['style_id'], row['size_id'])
+            metal = Metal(row['id'], row['metal'], row['price'])
+            style = Style(row['id'], row['style_type'], row['price'])
+            size = Size(row['id'], row['carets'], row['price'])
+            
+            order.metal = metal.__dict__
+            order.style = style.__dict__
+            order.size = size.__dict__
+            orders.append(order.__dict__)
+
+    return orders
 
 def get_single_order(id):
-    requested_order = None
-    
-    for order in ORDERS:
-        if order["id"] == id:
-            requested_order = order
-            return requested_order
-        
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            o.id,
+            o.timestamp,
+            o.metal_id,
+            o.style_id,
+            o.size_id
+        FROM Orders o
+        WHERE o.id = ?
+        """, ( id, ))
+
+        data = db_cursor.fetchone()
+        order = Order(data['id'], data['timestamp'], data['metal_id'],
+                      data['style_id'], data['size_id'])
+        return order.__dict__
+
 def create_order(order):
-    if len(ORDERS) == 0:
-        max_id = 0
-    else:
-        max_id = ORDERS[-1]["id"]
-    new_id = max_id + 1
-    order["id"] = new_id
-    ORDERS.append(order)
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        INSERT INTO Orders
+            ( timestamp, metal_id, style_id, size_id )
+        VALUES
+            ( ? , ? , ? , ? )
+        """, (order['timestamp'], order['metal_id'],
+                order['style_id'], order['size_id']))
+
+        id = db_cursor.lastrowid
+        order['id'] = id
+
     return order
 
 def update_order(id, new_order):
-    for index, order in enumerate(ORDERS):
-        if order["id"] == id:
-            ORDERS[index] = new_order
-            break
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Orders
+            SET
+                timestamp = ?,
+                metal_id = ?,
+                style_id = ?,
+                size_id = ?
+        WHERE id = ?
+        """, (new_order['timestamp'], new_order['metal_id'],
+                new_order['style_id'], new_order['size_id'], id, ))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True
 
 def delete_order(id):
-    order_index = -1
-    
-    for index, order in enumerate(ORDERS):
-        if order["id"] == id:
-            order_index = index
-            
-    if order_index >= 0:
-        ORDERS.pop(order_index)
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        DELETE FROM Orders
+        WHERE id = ?
+        """, ( id, ))

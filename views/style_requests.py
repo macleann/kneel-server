@@ -1,39 +1,89 @@
-STYLES = [
-    { "id": 1, "style": "Classic", "price": 500 },
-    { "id": 2, "style": "Modern", "price": 710 },
-    { "id": 3, "style": "Vintage", "price": 965 }
-]
+import sqlite3
+import json
+from models import Style
 
 def get_all_styles():
-    return STYLES
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            s.id,
+            s.style,
+            s.price
+        FROM Styles s
+        """)
+
+        styles = []
+
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            style = Style(row['id'], row['style'], row['price'])
+            styles.append(style.__dict__)
+
+    return styles
 
 def get_single_style(id):
-    requested_style = None
-    
-    for style in STYLES:
-        if style["id"] == id:
-            requested_style = style
-            return requested_style
-        
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            s.id,
+            s.style_type,
+            s.price
+        FROM Styles s
+        WHERE s.id = ?
+        """, ( id, ))
+
+        data = db_cursor.fetchone()
+        style = Style(data['id'], data['style_type'], data['price'])
+        return style.__dict__
+
 def create_style(style):
-    max_id = STYLES[-1]["id"]
-    new_id = max_id + 1
-    style["id"] = new_id
-    STYLES.append(style)
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        INSERT INTO Styles
+            ( style_type, price )
+        VALUES
+            ( ? , ? )
+        """, (style['style_type'], style['price']))
+
+        id = db_cursor.lastrowid
+        style['id'] = id
+
     return style
 
 def update_style(id, new_style):
-    for index, style in enumerate(STYLES):
-        if style["id"] == id:
-            STYLES[index] = new_style
-            break
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Styles
+            SET
+                style_type = ?,
+                price = ?
+        WHERE id = ?
+        """, (new_style['style_type'], new_style['price'], id, ))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True
 
 def delete_style(id):
-    style_index = -1
-    
-    for index, style in enumerate(STYLES):
-        if style["id"] == id:
-                style_index = index
-                
-    if style_index >= 0:
-        STYLES.pop(style_index)
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        DELETE FROM Styles
+        WHERE id = ?
+        """, ( id, ))

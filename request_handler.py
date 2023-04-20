@@ -64,23 +64,27 @@ class HandleRequests(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(new_resource).encode())
 
     def do_PUT(self):
-        """Handles PUT requests to the server """
-        self._set_headers(204)
+        """Handles PUT requests to the server"""
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
-        
+
         (resource, id) = self.parse_url(self.path)
-        
+
         if resource == "metals":
-            update_metal(id, post_body)
+            success = update_metal(id, post_body)
         elif resource == "styles":
-            update_style(id, post_body)
+            success = update_style(id, post_body)
         elif resource == "sizes":
-            update_size(id, post_body)
+            success = update_size(id, post_body)
         elif resource == "orders":
-            update_order(id, post_body)
-            
+            success = update_order(id, post_body)
+
+        if success:
+            self._set_headers(204)
+        else:
+            self._set_headers(404)
+
         self.wfile.write("".encode())
         
     def do_DELETE(self):

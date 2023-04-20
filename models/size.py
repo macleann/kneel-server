@@ -1,6 +1,6 @@
 class Size():
     
-    def __init__(self, id, size_type, price):
+    def __init__(self, id, carets, price):
         self.id = id
-        self.size_type = size_type
+        self.carets = carets
         self.price = price
