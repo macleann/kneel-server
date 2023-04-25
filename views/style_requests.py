@@ -2,17 +2,28 @@ import sqlite3
 import json
 from models import Style
 
-def get_all_styles():
+def get_all_styles(query_params):
     with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
-        db_cursor.execute("""
+        sort_by = ""
+
+        if len(query_params) != 0:
+            param = query_params[0]
+            [qs_key, qs_value] = param.split("=")
+
+            if qs_key == "_sortBy":
+                if qs_value == 'price':
+                    sort_by = " ORDER BY price"
+
+        db_cursor.execute(f"""
         SELECT
             s.id,
-            s.style,
+            s.style_type,
             s.price
         FROM Styles s
+        {sort_by}
         """)
 
         styles = []
@@ -20,7 +31,7 @@ def get_all_styles():
         dataset = db_cursor.fetchall()
 
         for row in dataset:
-            style = Style(row['id'], row['style'], row['price'])
+            style = Style(row['id'], row['style_type'], row['price'])
             styles.append(style.__dict__)
 
     return styles

@@ -33,9 +33,9 @@ def get_all_orders():
         for row in dataset:
             order = Order(row['id'], row['timestamp'], row['metal_id'], 
                           row['style_id'], row['size_id'])
-            metal = Metal(row['id'], row['metal'], row['price'])
-            style = Style(row['id'], row['style_type'], row['price'])
-            size = Size(row['id'], row['carets'], row['price'])
+            metal = Metal(row['metal_id'], row['metal'], row['price'])
+            style = Style(row['style_id'], row['style_type'], row['price'])
+            size = Size(row['size_id'], row['carets'], row['price'])
             
             order.metal = metal.__dict__
             order.style = style.__dict__

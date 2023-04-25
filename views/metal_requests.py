@@ -2,17 +2,28 @@ import sqlite3
 import json
 from models import Metal
 
-def get_all_metals():
+def get_all_metals(query_params):
     with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
-        db_cursor.execute("""
+        sort_by = ""
+
+        if len(query_params) != 0:
+            param = query_params[0]
+            [qs_key, qs_value] = param.split("=")
+
+            if qs_key == "_sortBy":
+                if qs_value == 'price':
+                    sort_by = " ORDER BY price"
+
+        db_cursor.execute(f"""
         SELECT
             m.id,
             m.metal,
             m.price
         FROM Metals m
+        {sort_by}
         """)
 
         metals = []

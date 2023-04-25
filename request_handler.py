@@ -1,5 +1,6 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse
 from views import get_all_metals, get_single_metal, create_metal, delete_metal, update_metal, get_all_styles, get_single_style, create_style, delete_style, update_style, get_all_sizes, get_single_size, create_size, delete_size, update_size, get_all_orders, get_single_order, create_order, delete_order, update_order
 
 
@@ -9,37 +10,56 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handles GET requests to the server """
-        self._set_headers(200)
         response = {}
-        
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
-        if resource == "metals":
-            if id is not None:
-                response = get_single_metal(id)
+        if '?' not in self.path:
+
+            if resource == "metals":
+                self._set_headers(200)
+                if id is not None:
+                    response = get_single_metal(id)
+                else:
+                    response = get_all_metals("")
+
+            elif resource == "styles":
+                self._set_headers(200)
+                if id is not None:
+                    response = get_single_style(id)
+                else:
+                    response = get_all_styles("")
+
+            elif resource == "sizes":
+                self._set_headers(200)
+                if id is not None:
+                    response = get_single_size(id)
+                else:
+                    response = get_all_sizes("")
+
+            elif resource == "orders":
+                self._set_headers(200)
+                if id is not None:
+                    response = get_single_order(id)
+                else:
+                    response = get_all_orders("")
+
             else:
-                response = get_all_metals()
-                
-        elif resource == "styles":
-            if id is not None:
-                response = get_single_style(id)
-            else:
-                response = get_all_styles()
-        
-        elif resource == "sizes":
-            if id is not None:
-                response = get_single_size(id)
-            else:
-                response = get_all_sizes()
-                
-        elif resource == "orders":
-            if id is not None:
-                response = get_single_order(id)
-            else:
-                response = get_all_orders()
+                self._set_headers(400)
+                response = []
 
         else:
-            response = []
+            if resource == "metals":
+                self._set_headers(200)
+                response = get_all_metals(query_params)
+            elif resource == "styles":
+                self._set_headers(200)
+                response = get_all_styles(query_params)
+            elif resource == "sizes":
+                self._set_headers(200)
+                response = get_all_sizes(query_params)
+            else:
+                self._set_headers(400)
+                response = []
 
         self.wfile.write(json.dumps(response).encode())
 
@@ -124,18 +144,25 @@ class HandleRequests(BaseHTTPRequestHandler):
         self.end_headers()
 
     def parse_url(self, path):
-        path_params = path.split("/")
-        resource = path_params[1]
+        """Parse the url into the resource and id"""
+        url_components = urlparse(path)
+        path_params = url_components.path.strip("/").split("/")
+        query_params = []
+
+        if url_components.query != '':
+            query_params = url_components.query.split("&")
+
+        resource = path_params[0]
         id = None
 
         try:
-            id = int(path_params[2])
+            id = int(path_params[1])
         except IndexError:
             pass
         except ValueError:
             pass
 
-        return (resource, id)
+        return (resource, id, query_params)
 
 # point of this application.
 def main():
